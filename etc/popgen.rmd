@@ -1,0 +1,230 @@
+---
+title: "Popgen definitions and tests"
+author: "gwct"
+date: "11/4/2019"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 0. Info
+
+*file:* tamias_84ind_TargetsOnly_Final.fasta
+
+*groups*: amoenus, cratericus, minimus, ruficaudus
+
+*command*: 
+
+> python3 fa_pop.py -i tamias_84ind_TargetsOnly_Final.tfa -g amoenus,cratericus,minimus,ruficaudus -p 8 --het
+
+# 1. Overall:
+
+## 1.1 Definitions
+
+Term | Definition
+- | ----
+Total sites | All sites where every individual is either homozygous or heterozygous.
+Invariant sites | The number of sites where every individual is homozygous for the same allele.
+Polymorphic sites | The number of sites where at least one individual is heterozygous or homozygous for a different allele.
+Pi | The expected number of nucleotide differences between two sequences.
+Pi per site | Pi divided by the number of sites considered.
+
+## 1.2 Results:
+
+Type | Count
+--- | ---
+Total sites | 8678441
+Invariant sites | 8112324
+Polymorphic sites | 566117
+Pi | 42810.036
+Pi per site | 0.00493
+
+# 2. Within group
+
+## 2.1 Definitions
+
+Term | Definition
+- | ----
+Fixed site | Sites where all individuals in this group share the same allele.
+Polymorphic site | Sites where at least one individual within the group is heterozygous or homozygous for a different allele.
+Pi | The expected number of nucleotide differences between two sequences within this group.
+Pi per site | Pi divided by the number of sites considered.
+
+## 2.2 Results
+
+Group | Fixed | Polymorphic | Pi | Pi per site
+--- | --- | --- | --- | ---
+amoenus | 139 |123722 | 36545.143 | 0.00421
+cratericus | 1427 | 306711 | 45904.983 | 0.00529
+minimus | 4486 | 151693 | 34913.438 | 0.00402
+ruficadus | 6137 | 44810 | 26493.5 | 0.00305
+
+```{r echo=FALSE}
+library(ggplot2)
+library(reshape2)
+
+group_results = data.frame(c("amoenus", "cratericus", "minimus", "ruficadus"),
+                           c(139, 1427, 4486, 6137),
+                           c(123722, 306711, 151693, 44810),
+                           c(36545.143, 45904.983, 34913.438, 26493.5),
+                           c(0.00421, 0.00529, 0.00402, 0.00305))
+names(group_results) = c("species", "fixed", "polymorphic", "pi", "pisite")
+
+#summary(group_results)
+
+gr_melt <- melt(group_results[,c('species','fixed','polymorphic')],id.vars = 1)
+
+site_p = ggplot(gr_melt, aes(x=species, y=value, fill=variable)) +
+  geom_bar(stat="identity", color="#333333", position="dodge") +
+  scale_fill_manual(labels=c("Fixed","Polymorphic"), values=c("#5c88da","#920000")) +
+  labs(x="", y="Log10 # sites") +
+  ggtitle("Figure 1: Within group site counts") +
+  #scale_y_continuous(expand = c(0, 0)) +
+  scale_y_log10(expand=c(0,0)) +
+  theme_classic() +
+  theme(axis.text=element_text(size=12), 
+        axis.title=element_text(size=16), 
+        axis.title.y=element_text(margin=margin(t=0,r=10,b=0,l=0),color="black"), 
+        axis.title.x=element_text(margin=margin(t=10,r=0,b=0,l=0),color="black"),
+        axis.line=element_line(colour='#595959',size=0.75),
+        axis.ticks=element_line(colour="#595959",size = 1),
+        axis.ticks.length=unit(0.2,"cm"),
+        legend.position="bottom",
+        legend.key.width = unit(0.75,  unit = "cm"),
+        legend.spacing.x = unit(0.25, 'cm'),
+        legend.title = element_blank(),
+        legend.text=element_text(size=12),
+        plot.title = element_text(size=18),
+        plot.margin = unit(c(0.5,0.5,0.5,0.5), "cm")
+  )
+
+print(site_p)
+```
+
+```{r echo=FALSE}
+pi_p = ggplot(group_results, aes(x=species, y=pisite)) +
+  geom_bar(stat="identity", color="#333333", position="dodge") +
+  labs(x="", y="Pi per site") +
+  ggtitle("Figure 2: Within group pi per site") +
+  #scale_y_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand=c(0,0)) +
+  theme_classic() +
+  theme(axis.text=element_text(size=12), 
+        axis.title=element_text(size=16), 
+        axis.title.y=element_text(margin=margin(t=0,r=10,b=0,l=0),color="black"), 
+        axis.title.x=element_text(margin=margin(t=10,r=0,b=0,l=0),color="black"),
+        axis.line=element_line(colour='#595959',size=0.75),
+        axis.ticks=element_line(colour="#595959",size = 1),
+        axis.ticks.length=unit(0.2,"cm"),
+        legend.position="bottom",
+        legend.key.width = unit(0.75,  unit = "cm"),
+        legend.spacing.x = unit(0.25, 'cm'),
+        legend.title = element_blank(),
+        legend.text=element_text(size=12),
+        plot.title = element_text(size=18),
+        plot.margin = unit(c(0.5,0.5,0.5,0.5), "cm")
+  )
+
+print(pi_p)
+
+```
+
+# 3. Between group
+
+## 3.1 Definitions
+
+Term | Definition
+- | ---
+Shared fixed differences | Sites where these two groups are fixed for one allele that is different from other groups.
+Paired fixed differences | Sites where these two groups are fixed for different alleles relative only to each other.
+Paired Pi | The expected number of nucleotide differences between two sequences among both groups.
+Paired Pi per site | Paired pi divided by the number of sites considered.
+
+## 3.2 Results
+
+### Shared fixed differences:
+ | amoenus | cratericus | minimus | ruficadus
+- | --- | --- | --- | ---
+amoenus | - | 3885 | 4651 | 18465
+cratericus | | - | 1460 | 6180
+minimus | | | - | 42258
+ruficadus | | | | -
+
+### Paired fixed differences:
+ | amoenus | cratericus | minimus | ruficadus
+- | --- | --- | --- | ---
+amoenus | - | 214550 | 319622 | 405967
+cratericus | | - | 150820 | 228071
+minimus | | | - | 368455
+ruficadus | | | | -
+
+### Paired Pi:
+ | amoenus | cratericus | minimus | ruficadus
+- | --- | --- | --- | ---
+amoenus | - | 20971.50769 | 12422.65217 | 2602.88889
+cratericus | | - | 3264.37838 | 318.53333
+minimus | | | - | 1396.0
+ruficadus | | | | -
+
+### Paired Pi per site:
+ | amoenus | cratericus | minimus | ruficadus
+- | --- | --- | --- | ---
+amoenus | - | 0.00242 | 0.00143 | 0.0003
+cratericus | | - | 0.00038 | 4e-05
+minimus | | | - | 0.00016
+ruficadus | | | | -
+
+```{r echo=FALSE}
+pair_results = data.frame(c("amoenus", "cratericus", "minimus", "ruficadus"),
+                           c(0.00421, 0.00242, 0.00143, 0.0003),
+                           c(NA, 0.00529, 0.00038, 4e-05),
+                           c(NA, NA, 0.00402, 0.00016),
+                           c(NA, NA, NA, 0.00305))
+names(pair_results) = c("species", "amoenus", "cratericus", "minimus", "ruficadus")
+
+
+#pr_melt <- melt(pair_results)
+
+pr_melt <- melt(pair_results[,c('species','amoenus','cratericus', 'minimus','ruficadus')],id.vars = 1)
+
+pi_hmap = ggplot(pr_melt, aes(x=species, y=variable, fill=value)) +
+  geom_tile(color="white") +
+  scale_fill_gradient(name="Pi per site", low="#ffffff", high="#d16d00", na.value="#ececec") +
+  #scale_fill_manual(labels=c("Fixed","Polymorphic"), values=c("#5c88da","#920000")) +
+  labs(x="", y="") +
+  ggtitle("Figure 3: Pi per site between groups") +
+  scale_x_discrete(expand=c(0,0)) +
+  scale_y_discrete(expand=c(0,0)) +
+  theme_classic() +
+  theme(axis.text=element_text(size=12), 
+      axis.title=element_text(size=16), 
+      axis.title.y=element_text(margin=margin(t=0,r=10,b=0,l=0),color="black"), 
+      axis.title.x=element_text(margin=margin(t=10,r=0,b=0,l=0),color="black"),
+      #axis.line=element_line(colour='#595959',size=0.75),
+      axis.ticks=element_line(colour="#595959",size = 1),
+      axis.ticks.length=unit(0.2,"cm"),
+      axis.line=element_blank(),
+      legend.position="right",
+      legend.key.width = unit(0.75,  unit = "cm"),
+      legend.spacing.x = unit(0.25, 'cm'),
+      #legend.title = element_blank(),
+      legend.text=element_text(size=12),
+      plot.title = element_text(size=18),
+      plot.margin = unit(c(0.5,0.5,0.5,0.5), "cm")
+  )
+
+print(pi_hmap)
+
+```
+
+Diagonal is within group pi per site.
+
+# 4. Other considerations/things I'm working on
+
+1. Why is Pi per site higher within groups than between groups? This doesn't make sense to me...
+2. Currently only considering sites without missing info.
+3. Using observed heterozygosity instead of expected.
